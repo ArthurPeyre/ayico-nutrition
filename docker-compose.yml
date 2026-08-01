@@ -1,0 +1,16 @@
+services:
+    nutrition:
+        build: .
+        container_name: ayico_nutrition
+        restart: unless-stopped
+        # Host networking : Metro doit annoncer l'IP LAN reelle du Pi (pas une IP
+        # interne au bridge Docker) pour que le telephone puisse le joindre via
+        # Expo Go. Fonctionne nativement sous Linux (le Pi).
+        network_mode: host
+        stdin_open: true
+        tty: true
+        # Pas de volume anonyme sur node_modules : on le laisse se creer sur le
+        # bind mount pour qu'il soit visible cote hote (autocompletion/typage
+        # dans l'editeur), cf. docker-entrypoint.sh.
+        volumes:
+            - .:/app
