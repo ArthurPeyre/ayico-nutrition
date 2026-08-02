@@ -7,8 +7,8 @@ import {
     View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL } from "./src/api/client";
+import { HealthApi } from "./src/api/health";
 
 type ApiState =
     | { kind: "loading" }
@@ -21,9 +21,8 @@ export default function App() {
     const checkHealth = useCallback(async () => {
         setState({ kind: "loading" });
         try {
-            const response = await fetch(`${API_URL}/health`);
-            const body = await response.json();
-            setState({ kind: "ok", status: body.status ?? "inconnu" });
+            const health = await HealthApi.getHealth();
+            setState({ kind: "ok", status: health.status });
         } catch (error) {
             setState({ kind: "error", message: (error as Error).message });
         }
