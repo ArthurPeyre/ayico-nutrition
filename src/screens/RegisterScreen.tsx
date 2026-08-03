@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 import type { AuthStackParamList } from "../navigation/AuthNavigator";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
@@ -11,16 +12,12 @@ export default function RegisterScreen({ navigation }: Props) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState<string>();
 
-    const handleCreateAccount = useCallback(async () => {
-        setError(undefined);
-        try {
-            await createAccount({ email, name }, password);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    }, [email, name, password, createAccount]);
+    const {
+        run: handleCreateAccount,
+        error,
+        loading,
+    } = useAsyncAction(() => createAccount({ email, name }, password));
 
     return (
         <View style={styles.container}>
@@ -48,7 +45,11 @@ export default function RegisterScreen({ navigation }: Props) {
                 value={password}
                 onChangeText={setPassword}
             />
-            <Button title="Creer mon compte" onPress={handleCreateAccount} />
+            <Button
+                title="Creer mon compte"
+                onPress={handleCreateAccount}
+                disabled={loading}
+            />
             {error && <Text style={styles.error}>{error}</Text>}
 
             <Button

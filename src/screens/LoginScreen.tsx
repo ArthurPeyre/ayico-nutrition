@@ -1,8 +1,10 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 import type { AuthStackParamList } from "../navigation/AuthNavigator";
+import { HttpStatusCode as HSC } from "../utils/HttpStatusCode";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
@@ -10,16 +12,18 @@ export default function LoginScreen({ navigation }: Props) {
     const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState<string>();
 
-    const handleLogin = useCallback(async () => {
-        setError(undefined);
-        try {
-            await login(email, password);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    }, [email, password, login]);
+    const {
+        run: handleLogin,
+        error,
+        loading,
+    } = useAsyncAction(
+        () => login(email, password),
+        (err) =>
+            err.statusCode === HSC.UNAUTHORIZED
+                ? "Email ou mot de passe invalide"
+                : err.message,
+    );
 
     return (
         <View style={styles.container}>
@@ -40,7 +44,11 @@ export default function LoginScreen({ navigation }: Props) {
                 value={password}
                 onChangeText={setPassword}
             />
-            <Button title="Se connecter" onPress={handleLogin} />
+            <Button
+                title="Se connecter"
+                onPress={handleLogin}
+                disabled={loading}
+            />
             {error && <Text style={styles.error}>{error}</Text>}
 
             <Button

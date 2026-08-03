@@ -1,10 +1,24 @@
 import * as SecureStore from "expo-secure-store";
+import { HttpStatusCode as HSC } from "../utils/HttpStatusCode";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const TOKEN_KEY = "auth_token";
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+    statusCode?: HSC;
+    label?: string;
+
+    constructor(
+        message: string,
+        options?: { statusCode?: HSC; label?: string },
+    ) {
+        super(message);
+        this.name = "ApiError";
+        this.statusCode = options?.statusCode;
+        this.label = options?.label;
+    }
+}
 
 export function setToken(token: string) {
     return SecureStore.setItemAsync(TOKEN_KEY, token);
@@ -56,10 +70,17 @@ export async function apiFetch<T>(
     });
 
     if (!response.ok) {
-        throw new ApiError(`${response.status} ${response.statusText}`);
+        const errorBody = await response.json().catch(() => undefined);
+        throw new ApiError(
+            errorBody?.message ?? `${response.status} ${response.statusText}`,
+            {
+                statusCode: errorBody?.statusCode ?? response.status,
+                label: errorBody?.error,
+            },
+        );
     }
 
-    if (response.status === 204) {
+    if (response.status === HSC.NO_CONTENT) {
         return undefined as T;
     }
 
