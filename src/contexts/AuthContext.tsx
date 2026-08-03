@@ -6,18 +6,16 @@ import {
     useEffect,
     useState,
 } from "react";
-import { getToken } from "../api/client";
+import { ApiError, getToken } from "../api/client";
 import { AuthAPI } from "../api/auth";
 import { User, UserAPI } from "../api/user";
+import { HttpStatusCode as HSC } from "../utils/HttpStatusCode";
 
 interface AuthContextValue {
     hasToken: boolean | null;
     me: User | { error: string } | undefined;
     login: (email: string, password: string) => Promise<void>;
-    createAccount: (
-        user: Omit<User, "id">,
-        password: string,
-    ) => Promise<void>;
+    createAccount: (user: Omit<User, "id">, password: string) => Promise<void>;
     logout: () => Promise<void>;
     deleteAccount: () => Promise<void>;
 }
@@ -37,10 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const data = await UserAPI.getMe();
             setMe(data);
-        } catch (error: any) {
-            setMe({ error: error.message });
+        } catch (error) {
+            if (
+                error instanceof ApiError &&
+                error.statusCode === HSC.UNAUTHORIZED
+            ) {
+                // Token expire/invalide: on revient a l'ecran de connexion.
+                await AuthAPI.logout();
+                await refreshTokenState();
+                return;
+            }
+            setMe({
+                error:
+                    error instanceof ApiError
+                        ? error.message
+                        : "Une erreur inattendue est survenue",
+            });
         }
-    }, []);
+    }, [refreshTokenState]);
 
     useEffect(() => {
         refreshTokenState();
